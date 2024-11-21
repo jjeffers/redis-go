@@ -33,25 +33,33 @@ func main() {
 
 		fmt.Println("Connection established")
 
-		reader := bufio.NewReader(conn)
+		go handle(conn)
 
-		for {
-			cmd, err := reader.ReadString('\n')
-			if err != nil {
-				break
-			}
+	}
 
-			fmt.Printf("cmd: %s", cmd)
-			switch strings.TrimSpace(cmd) {
-			case "PING":
-				fmt.Println("writing PONG response")
-				conn.Write([]byte("+PONG\r\n"))
-			default:
-					fmt.Printf("unknown command: %s", cmd)
-				}
+}
+
+func handle(conn net.Conn) {
+	defer conn.Close()
+
+	reader := bufio.NewReader(conn)
+
+	for {
+		cmd, err := reader.ReadString('\n')
+		if err != nil {
+			break
 		}
 
-		fmt.Println("closing connection")
-		conn.Close()
+		fmt.Printf("cmd: %s", cmd)
+		switch strings.TrimSpace(cmd) {
+		case "PING":
+			fmt.Println("writing PONG response")
+			conn.Write([]byte("+PONG\r\n"))
+		default:
+			fmt.Printf("unknown command: %s", cmd)
+		}
 	}
+
+	fmt.Println("closing connection")
+	conn.Close()
 }
