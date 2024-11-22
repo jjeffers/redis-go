@@ -8,13 +8,19 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Ensures gofmt doesn't remove the "net" and "os" imports in stage 1 (feel free to remove this!)
 var _ = net.Listen
 var _ = os.Exit
 
-type KeyStore map[string]string
+type KeyValue struct {
+	value           string
+	expiration time.Time
+}
+
+type KeyStore map[string]KeyValue
 
 func main() {
 
