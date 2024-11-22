@@ -14,7 +14,12 @@ import (
 var _ = net.Listen
 var _ = os.Exit
 
+type KeyStore map[string]string
+
 func main() {
+
+	key_store := KeyStore{}
+
 	// You can use print statements as follows for debugging, they'll be visible when running tests.
 	fmt.Println("Logs from your program will appear here!")
 
@@ -35,13 +40,13 @@ func main() {
 
 		fmt.Println("Connection established")
 
-		go handle(conn)
+		go handle(conn, key_store)
 
 	}
 
 }
 
-func handle(conn net.Conn) {
+func handle(conn net.Conn, key_store KeyStore) {
 	defer conn.Close()
 
 	fmt.Println("Handling connection")
@@ -61,14 +66,14 @@ func handle(conn net.Conn) {
 
 		switch tmp[0] {
 		case '*':
-			bulkArray(conn)
+			bulkArray(conn, key_store)
 		default:
 			fmt.Printf("Unknown RESP indicator '%s'\n", string(tmp[0]))
-			}
 		}
+	}
 }
 
-func bulkArray(conn net.Conn) {
+func bulkArray(conn net.Conn, key_store KeyStore) {
 	reader := bufio.NewReader(conn)
 
 	number_of_elements_str, err := reader.ReadString('\n')
@@ -105,7 +110,7 @@ func bulkArray(conn net.Conn) {
 		}
 	}
 
-	command(conn, elements[0].(string), elements[1:])
+	command(conn, key_store, elements[0].(string), elements[1:])
 }
 
 func bulkString(length_str string, reader *bufio.Reader) (string, error) {
@@ -131,8 +136,25 @@ func bulkString(length_str string, reader *bufio.Reader) (string, error) {
 	return str, nil
 }
 
-func command(conn net.Conn, command string, command_args []interface{}) {
+func command(conn net.Conn, key_store KeyStore,
+	command string, command_args []interface{}) {
 	switch strings.ToLower(command) {
+	case "set":
+		set_args := make([]string, 0)
+
+		for _, e := range command_args {
+			set_args = append(set_args,
+				e.(string))
+		}
+		set(conn, key_store, set_args)
+	case "get":
+		get_args := make([]string, 0)
+
+		for _, e := range command_args {
+			get_args = append(get_args,
+				e.(string))
+		}
+		get(conn, key_store, get_args)
 	case "echo":
 		echo_args := make([]string, 0)
 
@@ -146,35 +168,4 @@ func command(conn net.Conn, command string, command_args []interface{}) {
 	default:
 		fmt.Printf("Unknown command %s", command)
 	}
-}
-
-func echo(conn net.Conn, echo_args []string) {
-	fmt.Println("ECHO requested")
-	response := encodeResponseString(
-		strings.Join(echo_args, " "))
-	fmt.Printf("Sending back: '%s", response)
-	conn.Write(response)
-}
-
-func encodeResponseString(response string) []byte {
-	length := len(response)
-
-	terminator := "\r\n"
-	response_bytes := make([]byte, 0)
-
-	response_bytes = append(response_bytes, '$')
-	response_bytes = append(response_bytes, []byte(strconv.Itoa(length))...)
-
-	response_bytes = append(response_bytes, []byte(terminator)...)
-	response_bytes = append(response_bytes, []byte(response)...)
-
-	response_bytes = append(response_bytes, []byte(terminator)...)
-
-	return response_bytes
-}
-
-func ping(conn net.Conn) {
-	fmt.Println("PING requested")
-	fmt.Println("writing PONG response")
-	conn.Write([]byte("+PONG\r\n"))
 }
