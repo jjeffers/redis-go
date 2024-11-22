@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"strconv"
@@ -45,19 +46,26 @@ func handle(conn net.Conn) {
 
 	fmt.Println("Handling connection")
 
-	tmp := make([]byte, 1)
+	for {
 
-	_, err := conn.Read(tmp)
-	if err != nil {
-		fmt.Printf("Error reading first byte of request %s", err)
-	}
+		tmp := make([]byte, 1)
 
-	switch tmp[0] {
-	case '*':
-		bulkArray(conn)
-	default:
-		fmt.Printf("Unknown RESP indicator '%s'", string(tmp[0]))
-	}
+		_, err := conn.Read(tmp)
+		if err != nil {
+			if err == io.EOF {
+				fmt.Println("Client closed the connection")
+
+			}
+			fmt.Printf("Error reading first byte of request %s\n", err)
+		}
+
+		switch tmp[0] {
+		case '*':
+			bulkArray(conn)
+		default:
+			fmt.Printf("Unknown RESP indicator '%s'\n", string(tmp[0]))
+			}
+		}
 }
 
 func bulkArray(conn net.Conn) {
@@ -166,6 +174,7 @@ func encodeResponseString(response string) []byte {
 }
 
 func ping(conn net.Conn) {
+	fmt.Println("PING requested")
 	fmt.Println("writing PONG response")
 	conn.Write([]byte("+PONG\r\n"))
 }
