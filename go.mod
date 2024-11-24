@@ -9,3 +9,8 @@
 module github.com/codecrafters-io/redis-starter-go
 
 go 1.22
+
+require (
+	github.com/pborman/getopt/v2 v2.1.0 // indirect
+	github.com/spf13/pflag v1.0.5 // indirect
+)
